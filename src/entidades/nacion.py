@@ -63,6 +63,9 @@ class Nacion:
     # Estado general de la nación en la partida (False = eliminada).
     activa: bool = True
 
+    # Indica si la nación está en el exilio (sin provincias).
+    en_exilio: bool = False
+
     def __post_init__(self) -> None:
         if not 0 <= self.felicidad_promedio <= 100:
             raise ValueError(f"Felicidad promedio fuera de rango [0,100]: {self.felicidad_promedio}")
