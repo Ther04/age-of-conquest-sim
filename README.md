@@ -32,7 +32,14 @@ age-of-conquest-sim/
 ├── src/
 │   ├── entidades/         # Provincia, Nacion, Gobernante, RelacionDiplomatica
 │   ├── parametros.py      # Constantes de configuración del modelo
-│   └── mapa.py            # Estructura lógica del mapa y adyacencia
+│   ├── mapa.py            # Estructura lógica del mapa y adyacencia
+│   ├── economia.py        # Submodelo económico, poblacional y de felicidad
+│   ├── acciones_estaticas.py  # Reclutamiento, construcción y pillaje
+│   ├── combate/           # Resolución de combate (Lanchester) y movimiento
+│   ├── diplomacia/        # Relaciones diplomáticas y declaración de guerra
+│   ├── motor/              # FEL, ciclo WEGO, ranking, round-robin, victoria
+│   ├── simulacion.py       # Integra todos los submódulos en una partida jugable
+│   └── interfaz_consola.py # Bucle de turnos interactivo por consola
 ├── tests/                 # Pruebas y casos de validación numérica
 └── docs/
     └── decisiones/        # Registro de decisiones de diseño por feature
@@ -44,16 +51,34 @@ age-of-conquest-sim/
 
 ## Cómo ejecutar
 
-> El módulo de interfaz de consola (bucle de turnos) se agregará en una fase
-> posterior del desarrollo. Por ahora, el proyecto puede importarse y
-> ejercitarse directamente en Python, por ejemplo:
+Para jugar una partida interactiva por consola (3 naciones, mapa de 9
+provincias, 5 turnos por defecto):
 
 ```bash
 cd age-of-conquest-sim
+python3 -m src.interfaz_consola
+```
+
+Cada turno, cada nación activa ingresa sus órdenes (reclutar, construir,
+pillar, mover/atacar, declarar guerra, proponer paz/alianza, abandonar
+provincia, disbandar tropas) hasta escribir `fin`; luego se ejecuta el
+ciclo completo de fin de turno (WEGO) y se muestra el resultado. Escribe
+`ayuda` en cualquier momento para ver la lista de comandos.
+
+Para correr las pruebas automatizadas del proyecto:
+
+```bash
+python3 -m unittest discover -s tests
+```
+
+También se puede armar y ejecutar una partida mediante código, sin la
+interfaz interactiva, usando `src/simulacion.py` directamente:
+
+```bash
 python3 -c "
-from src.mapa import crear_mapa_anillo
-mapa = crear_mapa_anillo()
-print(f'Mapa generado con {len(mapa)} provincias')
+from src.simulacion import crear_partida_demo, ejecutar_n_turnos
+partida = crear_partida_demo(['Rojo', 'Azul', 'Verde'], num_provincias=9)
+ejecutar_n_turnos(partida, 5)
 "
 ```
 
