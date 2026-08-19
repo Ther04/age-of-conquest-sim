@@ -11,10 +11,22 @@ from .declaracion_guerra import (
     calcular_penalizacion_recurrente_guerra,
     declarar_guerra,
 )
+from .gestor_diplomacia import (
+    DURACION_CEASEFIRE_ALIANZA,
+    DURACION_CEASEFIRE_PAZ,
+    DURACION_CEASEFIRE_PROTECTORADO,
+    GestorDiplomacia,
+    clave_relacion,
+)
 
 __all__ = [
     "calcular_penalizacion_declaracion_guerra",
     "calcular_penalizacion_recurrente_guerra",
     "declarar_guerra",
     "aplicar_penalizacion_recurrente_guerras",
+    "GestorDiplomacia",
+    "clave_relacion",
+    "DURACION_CEASEFIRE_PAZ",
+    "DURACION_CEASEFIRE_ALIANZA",
+    "DURACION_CEASEFIRE_PROTECTORADO",
 ]
