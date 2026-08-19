@@ -19,6 +19,8 @@ from src.entidades.nacion import Nacion
 from src.entidades.provincia import Provincia
 from src.entidades.relacion_diplomatica import RelacionDiplomatica
 from src.motor.fel import Evento, FaseOrden, ListaEventosFuturos, TipoEvento
+from src.motor.ranking import calcular_ranking_debilidad
+from src.motor.round_robin import ejecutar_round_robin
 
 
 @dataclass
@@ -134,18 +136,19 @@ class MotorSimulacionWEGO:
 
     def ejecutar_fase_ordenada(self, turno: int) -> list[Evento]:
         """
-        Fase 2: Procesa órdenes ordenadas (movimientos, ataques, etc.).
-        Por defecto despacha en orden FIFO/prioridad; el algoritmo Round-Robin
-        se integra como despachador especializado.
+        Fase 2: Procesa órdenes ordenadas (movimientos, ataques, etc.)
+        utilizando el algoritmo Round-Robin regulado por el Ranking de Debilidad
+        (la nación más débil actúa primero y cede el turno tras cada movimiento/ataque).
         """
         ordenes = self.fel.filtrar_ordenes_ordenadas(turno)
-        procesados: list[Evento] = []
-        for evento in ordenes:
+        ranking = calcular_ranking_debilidad(self.naciones, self.mapa)
+
+        def despachar(evento: Evento) -> None:
             handler = self._handlers_ordenados.get(evento.tipo_evento)
             if handler:
                 handler(evento, self)
-            procesados.append(evento)
-        return procesados
+
+        return ejecutar_round_robin(ranking, ordenes, ejecutor_orden=despachar)
 
     def ejecutar_fase_endogena(self, turno: int) -> list[Evento]:
         """
