@@ -38,20 +38,23 @@ class GestorDiplomacia:
     def __init__(self, relaciones: Optional[dict[tuple[int, int], RelacionDiplomatica]] = None) -> None:
         self.relaciones: dict[tuple[int, int], RelacionDiplomatica] = relaciones or {}
 
-    def obtener_relacion(self, id_a: int, id_b: int, crear_si_no_existe: bool = True) -> RelacionDiplomatica:
+    def obtener_relacion(self, id_a: int, id_b: int, crear_si_no_existe: bool = True) -> Optional[RelacionDiplomatica]:
         """Obtiene la relación bilateral entre dos naciones (crea NEUTRAL por defecto)."""
         if id_a == id_b:
             raise ValueError("Una nación no puede tener relación diplomática consigo misma")
 
         clave = clave_relacion(id_a, id_b)
-        if clave not in self.relaciones and crear_si_no_existe:
-            self.relaciones[clave] = RelacionDiplomatica(
-                nacion_a=clave[0],
-                nacion_b=clave[1],
-                tipo=TipoRelacion.NEUTRAL,
-                turno_inicio=1,
-                turnos_ceasefire_restante=0,
-            )
+        if clave not in self.relaciones:
+            if crear_si_no_existe:
+                self.relaciones[clave] = RelacionDiplomatica(
+                    nacion_a=clave[0],
+                    nacion_b=clave[1],
+                    tipo=TipoRelacion.NEUTRAL,
+                    turno_inicio=1,
+                    turnos_ceasefire_restante=0,
+                )
+            else:
+                return None
         return self.relaciones[clave]
 
     def son_aliados(self, id_a: int, id_b: int) -> bool:
