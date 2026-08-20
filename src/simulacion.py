@@ -48,6 +48,49 @@ class Partida:
     gestor_diplomacia: GestorDiplomacia
     evaluador_victoria: EvaluadorVictoria
     random_generator: random.Random = field(default_factory=random.Random)
+    # Propuestas diplomáticas pendientes: {id_nacion_receptora: [(tipo_propuesta, id_nacion_proponente)]}
+    propuestas_pendientes: dict[int, list[tuple[str, int]]] = field(default_factory=dict)
+
+
+def proponer_tratado(partida: Partida, id_origen: int, id_destino: int, tipo: str) -> None:
+    """Registra una propuesta diplomática pendiente en la bandeja de la nación receptora."""
+    if id_destino not in partida.propuestas_pendientes:
+        partida.propuestas_pendientes[id_destino] = []
+    propuesta = (tipo.lower(), id_origen)
+    if propuesta not in partida.propuestas_pendientes[id_destino]:
+        partida.propuestas_pendientes[id_destino].append(propuesta)
+
+
+def aceptar_tratado(partida: Partida, id_receptor: int, id_origen: int, tipo: str, turno: int) -> bool:
+    """Acepta una propuesta diplomática y aplica la transición de estado correspondiente."""
+    pendientes = partida.propuestas_pendientes.get(id_receptor, [])
+    propuesta = (tipo.lower(), id_origen)
+    if propuesta in pendientes:
+        pendientes.remove(propuesta)
+        tipo_str = tipo.lower()
+        if tipo_str == "alianza":
+            partida.gestor_diplomacia.establecer_alianza(id_receptor, id_origen, turno)
+        elif tipo_str == "paz":
+            n_receptor = partida.motor.naciones[id_receptor]
+            n_origen = partida.motor.naciones[id_origen]
+            if partida.gestor_diplomacia.estan_en_guerra(id_receptor, id_origen):
+                partida.gestor_diplomacia.firmar_paz_desde_guerra(id_receptor, id_origen, n_receptor, n_origen, turno)
+            else:
+                partida.gestor_diplomacia.establecer_paz(id_receptor, id_origen, turno)
+        elif tipo_str == "protectorado":
+            partida.gestor_diplomacia.establecer_protectorado(id_origen, id_receptor, turno)
+        return True
+    return False
+
+
+def rechazar_tratado(partida: Partida, id_receptor: int, id_origen: int, tipo: str) -> bool:
+    """Rechaza y elimina una propuesta diplomática pendiente."""
+    pendientes = partida.propuestas_pendientes.get(id_receptor, [])
+    propuesta = (tipo.lower(), id_origen)
+    if propuesta in pendientes:
+        pendientes.remove(propuesta)
+        return True
+    return False
 
 
 def crear_partida_demo(nombres_naciones: list[str], num_provincias: int = 9, semilla: Optional[int] = 42) -> Partida:
@@ -155,13 +198,8 @@ def _registrar_handlers_estaticos(partida: Partida) -> None:
         if objetivo_id is None or objetivo_id not in motor.naciones:
             print(f"[Turno {evento.turno}] Nación {nacion.nombre}: propuesta diplomática inválida (sin objetivo).")
             return
-        if tipo_propuesta == "alianza":
-            partida.gestor_diplomacia.establecer_alianza(nacion.id_nacion, objetivo_id, evento.turno)
-        elif tipo_propuesta == "protectorado":
-            partida.gestor_diplomacia.establecer_protectorado(nacion.id_nacion, objetivo_id, evento.turno)
-        else:
-            partida.gestor_diplomacia.establecer_paz(nacion.id_nacion, objetivo_id, evento.turno)
-        print(f"[Turno {evento.turno}] Nación {nacion.nombre}: propuso '{tipo_propuesta}' a la nación {objetivo_id}.")
+        proponer_tratado(partida, nacion.id_nacion, objetivo_id, tipo_propuesta)
+        print(f"[Turno {evento.turno}] Nación {nacion.nombre}: envió propuesta de '{tipo_propuesta}' a la nación {objetivo_id}.")
 
     motor.registrar_handler_estatico(TipoEvento.RECLUTAR, handler_reclutar)
     motor.registrar_handler_estatico(TipoEvento.CONSTRUIR_MURALLA, handler_muralla)
@@ -270,12 +308,21 @@ def _registrar_hooks_fin_turno(partida: Partida) -> None:
         for id_nacion, nacion in motor.naciones.items():
             if not nacion.activa:
                 continue
-            _, _, ingreso_bruto = economia.calcular_ingresos(nacion, motor.mapa, turno)
+            tesoreria_previa = nacion.tesoreria
+            comercio, impuesto, ingreso_bruto = economia.calcular_ingresos(nacion, motor.mapa, turno)
             costo_admin = economia.calcular_costo_administracion(nacion, motor.mapa, ingreso_bruto)
             upkeep = economia.calcular_mantenimiento_militar(nacion, motor.mapa)
             net_income = economia.actualizar_tesoreria_y_ap(nacion, motor.mapa, turno, ingreso_bruto, costo_admin, upkeep)
             net_incomes[id_nacion] = net_income
             military_upkeeps[id_nacion] = upkeep
+
+            impuesto_str = f" + {impuesto} Impuesto Anual" if (turno > 0 and turno % 12 == 0) else ""
+            print(
+                f"[Turno {turno} - Finanzas] {nacion.nombre} (Nación {id_nacion}): "
+                f"Ingreso Bruto: +{ingreso_bruto} (Comercio: {comercio}{impuesto_str}) | "
+                f"Costo Admin: -{costo_admin} | Mantenimiento: -{upkeep} | "
+                f"Flujo Neto: {net_income - upkeep:+d} (Tesorería: {tesoreria_previa} -> {nacion.tesoreria} oro)"
+            )
 
         # Paso 3: Ajuste de felicidad (impuestos + guerras activas) y desgaste recurrente de guerra.
         for nacion in motor.naciones.values():

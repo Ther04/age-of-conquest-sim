@@ -75,6 +75,15 @@ class GestorDiplomacia:
             return False
         return rel.tipo == TipoRelacion.GUERRA
 
+    def hay_ceasefire_activo(self, id_a: int, id_b: int) -> bool:
+        """Verifica si existe un alto el fuego (ceasefire) activo entre dos naciones."""
+        if id_a == id_b:
+            return False
+        rel = self.obtener_relacion(id_a, id_b, crear_si_no_existe=False)
+        if not rel:
+            return False
+        return rel.turnos_ceasefire_restante > 0 or rel.tipo == TipoRelacion.CEASEFIRE
+
     def pueden_declararse_guerra(self, id_a: int, id_b: int) -> bool:
         """
         Determina si `id_a` puede declarar la guerra a `id_b`.
