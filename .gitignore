@@ -1,0 +1,34 @@
+# Entornos virtuales
+venv/
+.venv/
+env/
+ENV/
+
+# Bytecode y cachés de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Empaquetado / distribución
+build/
+dist/
+*.egg-info/
+
+# Configuración de IDEs
+.vscode/
+.idea/
+
+# Archivos de sistema operativo
+.DS_Store
+Thumbs.db
+
+# Configuración local de Claude Code (nunca debe vivir dentro del repo)
+.claude/
+
+# Material interno de planificación con IA (vive fuera del repo, un nivel arriba;
+# esta entrada es solo un resguardo extra por si se copia por error)
+../CLAUDE.md
+../REPARTO_TAREAS.md
